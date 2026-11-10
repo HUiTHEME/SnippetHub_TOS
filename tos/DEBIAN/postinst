@@ -40,9 +40,17 @@ if [ -f "${APP}/webui.bz2" ]; then
     chmod -R a+rX "${APP}/webui" 2>/dev/null || true
 fi
 
-# TOS 要求 unit 文件放在应用目录 /usr/local/<appid>/init.d/ 下，
-# 但 systemd 不会自己扫描那里，需要一条指向 /etc/systemd/system 的链接。
-ln -sf "${UNIT_SRC}" "${UNIT_DST}"
+# TOS 要求 unit 文件放在应用目录 /usr/local/<appid>/init.d/ 下，但 systemd
+# 只扫 /etc/systemd/system，所以要往那边放一份。
+#
+# ⚠️ 必须用「复制」而不是「符号链接」：应用目录在 /Volume1/@apps 上，
+# 开机早期卷还没挂载，软链是断的，systemd 会把这个单元判成 not-found
+# 直接跳过（日志里是 Failed to open /etc/systemd/system/<appid>.service:
+# No such file or directory），结果就是「重启后应用不会自己启动」。
+# 复制到根文件系统后，开机就在；unit 里的 RequiresMountsFor 再保证等挂载完成。
+rm -f "${UNIT_DST}"
+cp "${UNIT_SRC}" "${UNIT_DST}"
+chmod 644 "${UNIT_DST}"
 
 case "$1" in
     configure)

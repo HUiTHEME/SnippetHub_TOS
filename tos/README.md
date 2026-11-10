@@ -194,7 +194,21 @@ TOS 的 `/<appid>/` 路由、`/v2/proxy/<appid>/` 代理和平台鉴权（`auth_
     `data` 的属主对不上，等于换个方式把数据锁死。
     自测 `purge` 是否安全时，**用 ASCII 文件名做标记**：拿中文文件名配 `test -f`
     判断会被 bash 编码问题影响，误报成"数据被删"。
-16. **连接失败不要复用「解锁」界面**。`detectBase()` 抛错时如果直接
+16. **开机自启的两个坑（实测踩过）**。
+   1. `/etc/systemd/system/<appid>.service` 必须是**复制**过去的实体文件，不能是
+      指向 `/usr/local/<appid>/init.d/` 的软链：应用目录在 `/Volume1/@apps` 上，
+      开机早期卷还没挂，软链是断的，systemd 直接把单元判成 not-found 跳过
+      （日志：`Failed to open /etc/systemd/system/<appid>.service: No such file or directory`）。
+   2. 光有 `RequiresMountsFor=` 还不够。unit 在开机很早时就被加载，那时卷没挂，
+      systemd 解析路径会当成「在根文件系统上」，于是不生成挂载依赖，服务照旧在
+      卷挂载前启动，然后死在建立命名空间这一步：
+      `Failed to set up mount namespacing: .../Volume1/@apps/<appid>/data: No such file or directory`
+      （`226/NAMESPACE`）。必须显式写 `Wants=tnas-mntdata.service` 和
+      `After=... tnas-mntdata.service` —— `/Volume1` 是 TOS 自己的挂载服务挂的。
+   验证：`systemctl reboot` 后看 `journalctl -b | grep -E "Volume1 success|Started SnippetHub"`，
+   后者的时间必须晚于前者。
+
+17. **连接失败不要复用「解锁」界面**。`detectBase()` 抛错时如果直接
    `showGate(true)`，用户看到的是「请输入访问密码」+「无法连接到应用服务」，
    会以为密码错了。现在走 `showConnectError()`：输入框禁用、按钮变「重试」、
    下面列出「检查应用是否运行 → 重试 → 重启应用」的步骤。

@@ -1,7 +1,18 @@
 [Unit]
 Description=SnippetHub - private snippet and note vault
 Documentation=https://github.com/HUiTHEME/SnippetHub_TOS
-After=network.target
+# ⚠️ 开机自启依赖这两行，缺一不可（实测：不加就是重启后应用不启动）：
+#
+# 1) 应用装在 /Volume1/@apps 下，而 /Volume1 是 TOS 自己的 tnas-mntdata.service
+#    挂载的，比 multi-user.target 早不了多少。卷没挂上时，ReadWritePaths 里的
+#    data 目录不存在，systemd 会在「建立挂载命名空间」这一步直接失败
+#    （226/NAMESPACE），服务起不来。
+# 2) RequiresMountsFor 单独用它不够：unit 是在开机很早的时候被加载的，
+#    那时卷还没挂，systemd 解析路径会当成「在根文件系统上」，于是不生成
+#    挂载依赖。真正起作用的是下面这条显式的 After/Wants。
+RequiresMountsFor=/usr/local/snippethub
+Wants=tnas-mntdata.service
+After=network.target local-fs.target tnas-mntdata.service
 # 崩溃循环保护：60 秒内最多拉起 5 次，超了 systemd 会停下并标记失败。
 # （Restart= / RestartSec= 按平台规范不在这里配置，重启策略由 TOS 管理。）
 StartLimitBurst=5
