@@ -59,6 +59,19 @@ build_one() {
   cp "$TOS/$APPID.env" "$app/$APPID.env"
   cp "$TOS/init.d/$SYSTEM_ID.service" "$app/init.d/$SYSTEM_ID.service"
   chmod 644 "$app/config.ini" "$app/$APPID.lang" "$app/images/icons/$APPID.svg" "$app/$APPID.env"
+
+  # config.ini 的 platform 必须与这个包的实际架构一致：平台提交时会拿它和
+  # 你在开发者平台登记的架构比对，不匹配直接驳回，而且它不接受 all / 多值。
+  # 所以每个包单独改一份（源码里的 config.ini 保持 x86_64 不动）。
+  python3 - "$app/config.ini" "$platform" <<'PYV'
+import json, sys
+path, plat = sys.argv[1], sys.argv[2]
+d = json.load(open(path, encoding='utf-8'))
+d['platform'] = plat
+with open(path, 'w', encoding='utf-8') as f:
+    json.dump(d, f, ensure_ascii=False, indent=2)
+    f.write('\n')
+PYV
   chmod 644 "$app/init.d/$SYSTEM_ID.service"
 
   # --- 前端：webui.bz2（内部是 webui/ 目录，平台或 postinst 解压到 /usr/local/<appid>/webui）---
@@ -105,6 +118,8 @@ PY
 
   python3 "$ROOT/tools/mkdeb.py" "$STAGE" "$out"
   clean_dir "$STAGE"
+  # 附带 sha256：Release 里一起放，用户手工下载后能校验（平台自己也会算，不强制）
+  ( cd "$DIST" && if command -v shasum >/dev/null 2>&1; then shasum -a 256 "$(basename "$out")" > "$(basename "$out").sha256"; else sha256sum "$(basename "$out")" > "$(basename "$out").sha256"; fi )
   ls -lh "$out"
 }
 
