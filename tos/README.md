@@ -139,25 +139,28 @@ TOS 的 `/<appid>/` 路由、`/v2/proxy/<appid>/` 代理和平台鉴权（`auth_
 
 ## 六、踩过的坑（改代码前先看这几条）
 
-1. **不要写 `Group=snippethub`**。TOS 建应用用户时主组是 `allusers`，同名的组
-   根本不存在，写了会让 systemd 在 `ExecStart` 之前就以 `216/GROUP` 失败；
-   改成别的组又会丢掉 `allusers` 成员身份，共享目录就读不了了。干脆不写。
-2. **不要开 `PrivateTmp=true`**。`/var/api` 在 TOS 上是 `/tmp/api` 的软链，私有
+1. **`Group=` 必须写 `allusers`，不能写 `snippethub`**。TOS 建应用用户时主组是
+   `allusers`，同名的组根本不存在，写 `Group=snippethub` 会让 systemd 在
+   `ExecStart` 之前就以 `216/GROUP` 失败；换成别的组又会丢掉 `allusers` 成员身份，
+   共享文件夹就读不到了。规范要求显式声明 `Group`，所以写 `Group=allusers`。
+2. **不要配置 `Restart=` / `RestartSec=`**。规范把重启策略交给平台管理，
+   只保留 `StartLimitBurst` / `StartLimitIntervalSec` 防崩溃循环。
+3. **不要开 `PrivateTmp=true`**。`/var/api` 在 TOS 上是 `/tmp/api` 的软链，私有
    `/tmp` 命名空间会让它挂不上，服务以 `226/NAMESPACE` 起不来。
-3. **`ReadWritePaths` 要带 `-/VolumeN`**。`ProtectSystem=strict` 下 `/usr/local`
-   是只读的，数据目录和 `/var/api` 必须显式放开；`-` 前缀表示卷不存在就跳过。
-4. **systemd 单元要落到 `/etc/systemd/system/`**。规范要求单元文件放在应用目录
+4. **`ReadWritePaths` 只放开自己的 data/logs 和 `/var/api`**。`ProtectSystem=strict`
+   下 `/usr/local` 是只读的，这两个目录必须显式列出来，否则启动即 EROFS。
+5. **systemd 单元要落到 `/etc/systemd/system/`**。规范要求单元文件放在应用目录
    `init.d/` 下，但 systemd 不会去扫那里，`postinst` 里 `ln -sf` 一条链接过去，
    `postrm` 里删掉。
-5. **socket 权限给 0666**。规范写的是 0660，但 `/var/api` 是 1777 共享目录、平台
+6. **socket 权限给 0666**。规范写的是 0660，但 `/var/api` 是 1777 共享目录、平台
    nginx 以另一个用户组访问，0666 两边都能过，省掉一堆权限问题。
-6. **`Set-Cookie` 的 `Path` 必须是 `/`**。登录 cookie（`sh_sid`）要能跟着
+7. **`Set-Cookie` 的 `Path` 必须是 `/`**。登录 cookie（`sh_sid`）要能跟着
    `/v2/proxy/snippethub/*` 的请求一起发出去，否则一刷新就掉登录。
-7. **打包别带 `._*` / `.DS_Store`**。macOS 会在目录里留 AppleDouble 文件，
+8. **打包别带 `._*` / `.DS_Store`**。macOS 会在目录里留 AppleDouble 文件，
    打进去以后会被平台当成页面资源，`build.sh` 已经过滤掉。
-8. **行尾必须 LF**。`postinst` 混进 CRLF 会让 TOS 报 `bad interpreter`，
+9. **行尾必须 LF**。`postinst` 混进 CRLF 会让 TOS 报 `bad interpreter`，
    `build.sh` 打包前统一转一遍。
-9. **前端每一个请求都要带 `X-Csrf-Token`，包括启动探测和文件下载**。
+10. **前端每一个请求都要带 `X-Csrf-Token`，包括启动探测和文件下载**。
    平台网关对「有会话但缺 token」的请求回 **403**（而不是文档里写的 401），
    对「会话无效」才回 `200 {"please login"}` —— 很容易误判成「服务没起来」。
    两个具体教训：
@@ -167,7 +170,7 @@ TOS 的 `/<appid>/` 路由、`/v2/proxy/<appid>/` 代理和平台鉴权（`auth_
    - `<a download>` 是浏览器原生发起的请求，**带不上**自定义头，
      所以附件下载、备份导出这类二进制下载必须改成 `fetch` → `blob` → 触发保存
      （见 `downloadViaApi()`），否则点下载就是 403。
-10. **窗口顶部要留 40px**。TOS 的窗口标题栏是**浮在 iframe 之上**的（窗口按钮压在页面
+11. **窗口顶部要留 40px**。TOS 的窗口标题栏是**浮在 iframe 之上**的（窗口按钮压在页面
     最上面那一行），应用不留白的话，侧栏 logo、搜索框、正文标题整行都会被挡住。
     实现方式：后端按 socket 路径判断平台（`/var/api/` 开头即 TOS），在 `state` 里返回
     `platform`；前端挂到 `<html data-platform="tos">`，CSS 里
@@ -175,14 +178,16 @@ TOS 的 `/<appid>/` 路由、`/v2/proxy/<appid>/` 代理和平台鉴权（`auth_
     这些 `position:fixed` 的全屏容器统一 `inset:var(--safe-top) 0 0 0`。
     ⚠️ `index.html` 里那段内联预判只能写 `seg === 'snippethub'`，**别写成「第一段不是
     app 就当 TOS」**——本地开发和 `file://` 预览会被误判，凭空多出一块空白。
-11. **TOS 的目录权限是自研的 `tmacl`，`setfacl` 不生效**。文件系统挂载参数里带 `tmacl`，
+12. **TOS 的目录权限是自研的 `tmacl`，`setfacl` 不生效**。文件系统挂载参数里带 `tmacl`，
     `setfacl -m u:snippethub:rwx <dir>` 之后 `getfacl` 能看到条目，但内核判权限时不采用
     （`access()` 依然拒绝）。默认数据目录 `/usr/local/snippethub/data` 属主就是应用用户，
     不受影响 —— 这也是 TOS 把应用数据放 `@apps` 下的原因。
-12. **`share_folders` 只在应用中心安装时生效**。`config.ini` 里声明了
+13. **`share_folders` 只在应用中心安装时生效**。`config.ini` 里声明了
     `"share_folders": ["data"]`，从 App Center 安装时平台会建好共享文件夹并配好权限；
     但 `dpkg -i` 侧载不会触发（实测 `/Volume1` 下什么都没多出来）。
-13. **卸载脚本绝对不能删 `data`**（这是一次真实事故，务必保留这条）。
+14. **`low_version` 写 `7.0`，不要写 `TOS7.0`**。规范要求纯数字的 MAJOR.MINOR
+   （或 MAJOR.MINOR.PATCH），带前缀在人工审核那关会被挑出来。
+15. **卸载脚本绝对不能删 `data`**（这是一次真实事故，务必保留这条）。
     TOS 应用中心里的「重装 / 修复安装」走的是 `dpkg --purge`，`/var/log/dpkg.log`
     里会记成 `configure <appid> <ver> <none>`（`<none>` 表示视为全新安装）。
     早期版本的 `postrm` 在 purge 分支里 `rm -rf data`，用户只要重装一次，
@@ -191,7 +196,7 @@ TOS 的 `/<appid>/` 路由、`/v2/proxy/<appid>/` 代理和平台鉴权（`auth_
     `data` 的属主对不上，等于换个方式把数据锁死。
     自测 `purge` 是否安全时，**用 ASCII 文件名做标记**：拿中文文件名配 `test -f`
     判断会被 bash 编码问题影响，误报成"数据被删"。
-14. **连接失败不要复用「解锁」界面**。`detectBase()` 抛错时如果直接
+16. **连接失败不要复用「解锁」界面**。`detectBase()` 抛错时如果直接
    `showGate(true)`，用户看到的是「请输入访问密码」+「无法连接到应用服务」，
    会以为密码错了。现在走 `showConnectError()`：输入框禁用、按钮变「重试」、
    下面列出「检查应用是否运行 → 重试 → 重启应用」的步骤。

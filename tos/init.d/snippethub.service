@@ -2,15 +2,18 @@
 Description=SnippetHub - private snippet and note vault
 Documentation=https://github.com/HUiTHEME/SnippetHub_TOS
 After=network.target
+# 崩溃循环保护：60 秒内最多拉起 5 次，超了 systemd 会停下并标记失败。
+# （Restart= / RestartSec= 按平台规范不在这里配置，重启策略由 TOS 管理。）
 StartLimitBurst=5
 StartLimitIntervalSec=60
 
 [Service]
 Type=simple
 User=snippethub
-# Group= 故意不写：TOS 7 建应用用户时主组是 allusers，并不存在同名的
-# snippethub 组，写了会让 systemd 在 ExecStart 之前就以 216/GROUP 失败；
-# 换成别的组又会丢掉 allusers 成员身份，共享文件夹的读权限就没了。
+# Group 显式写 allusers：TOS 建应用用户时主组就是 allusers，并不存在同名的
+# snippethub 组，写 Group=snippethub 会让 systemd 在 ExecStart 之前就以
+# 216/GROUP 失败；换成别的组又会丢掉 allusers 成员身份，共享文件夹就读不到了。
+Group=allusers
 WorkingDirectory=/usr/local/snippethub
 EnvironmentFile=-/usr/local/snippethub/snippethub.env
 ExecStart=/usr/local/snippethub/bin/snippethub -data /usr/local/snippethub/data -socket /var/api/snippethub.sock
@@ -35,18 +38,12 @@ RestrictRealtime=true
 RestrictSUIDSGID=true
 LockPersonality=true
 # PrivateTmp 不能用：/var/api 在 TOS 上是 /tmp/api 的软链，
-# 独立的 /tmp 命名空间会让它变成 226/NAMESPACE 起不来。
-# ProtectSystem=strict 下 /usr/local/snippethub 是只读的，
-# 所以 data/logs 和 /var/api 必须显式放开；- 前缀表示该卷不存在就跳过，
-# 因为应用支持把数据目录切到任意 Volume 下的共享文件夹。
-ReadWritePaths=/usr/local/snippethub/data /usr/local/snippethub/logs /var/api -/Volume1 -/Volume2 -/Volume3 -/Volume4 -/Volume5 -/Volume6
+# 独立的 /tmp 命名空间会让服务以 226/NAMESPACE 起不来。
+# ProtectSystem=strict 下 /usr/local 是只读的，数据目录、日志目录和
+# /var/api 必须显式放开（应用只在 socket 上监听，不绑任何 TCP 端口）。
+ReadWritePaths=/usr/local/snippethub/data /usr/local/snippethub/logs /var/api
 LimitNOFILE=65536
 LimitNPROC=512
-
-# 进程异常退出时自己拉起来；正常停机的退出码是 0，on-failure 不会触发重启，
-# 所以 App Center 的「停用」依然能把服务停住。
-Restart=on-failure
-RestartSec=10
 
 [Install]
 WantedBy=multi-user.target

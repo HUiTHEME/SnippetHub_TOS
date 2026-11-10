@@ -318,6 +318,21 @@ function apiCandidates() {
   return Array.from(new Set(list.filter(Boolean)));
 }
 
+/* 平台会话失效时，网关对 /v2/proxy/<id>/* 回 200 的
+ * {"is_login":false,"msg":"please login"}（而不是 401）。这时不能当成
+ * 「应用连不上」，也不该让用户对着应用自己的密码框反复输 —— 直接重新加载
+ * 当前页面，让平台按它自己的流程走登录。只触发一次，避免刷新循环。 */
+let platformLoginRedirected = false;
+function leaveToPlatformLogin() {
+  if (platformLoginRedirected) return;
+  platformLoginRedirected = true;
+  location.reload();
+}
+
+function isPlatformLoginMissing(j) {
+  return !!j && j.is_login === false;
+}
+
 async function detectBase() {
   for (const c of apiCandidates()) {
     try {
@@ -326,12 +341,16 @@ async function detectBase() {
       const res = await fetch(c + 'api/state', authInit());
       if (!res.ok) continue;
       const j = await res.json();
+      if (isPlatformLoginMissing(j)) { platformLoginRedirected = false; leaveToPlatformLogin(); throw new Error('平台登录已过期，请重新登录'); }
       if (j && typeof j.initialized === 'boolean') {
         BASE = c;
         applyPlatform(j.platform);
         return j;
       }
-    } catch (e) { /* 继续尝试下一个候选前缀 */ }
+    } catch (e) {
+      // 平台登录问题要立刻往上抛，不能被当成「这个前缀不通」吞掉
+      if (platformLoginRedirected) throw e;
+    }
   }
   throw new Error('无法连接到应用服务');
 }
@@ -375,6 +394,10 @@ async function api(path, opts = {}) {
   const text = await res.text();
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch (e) { data = null; }
+  if (isPlatformLoginMissing(data)) {
+    leaveToPlatformLogin();
+    throw new Error('平台登录已过期，正在重新登录…');
+  }
   if (res.status === 401) {
     // 返回的不是本应用的 JSON，说明是 TOS 平台会话失效（而不是应用密码错），
     // 这种情况刷新页面让平台重新走登录，别让用户对着密码框反复输。
