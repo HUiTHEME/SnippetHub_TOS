@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#101013">
+<title>片段HUB · SnippetHub</title>
+<link rel="icon" href="favicon.png">
+<script>
+  // 应用的页面入口是 /<appid>/，先把平台标记挂到 <html> 上
+  // （接口返回后还会再校正一次），否则启动动画那一下顶部会被
+  // 窗口标题栏盖住。
+  try {
+    var seg = (location.pathname.split('/').filter(Boolean)[0] || '').toLowerCase();
+    // 只认自己的入口路径 /snippethub/，别写成「第一段不是 app 就当 TOS」
+    // ——本地开发、file:// 预览都会被误判，凭空多出一块留白。
+    if (seg === 'snippethub') document.documentElement.dataset.platform = 'tos';
+  } catch (e) {}
+</script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ===== 启动画面：先判断有没有解锁，避免"闪一下密码页" ===== -->
+<div id="boot" class="boot">
+  <div class="boot-inner">
+    <div class="boot-logo" id="bootLogo"></div>
+    <div class="boot-name">片段HUB</div>
+    <div class="boot-track"><i></i></div>
+  </div>
+</div>
+
+<!-- ===== 密码锁屏（默认不显示，由启动判定决定） ===== -->
+<div id="gate" class="gate" hidden>
+  <div class="gate-glow"></div>
+  <form class="gate-card" id="gateForm" autocomplete="off">
+    <div class="gate-brand">
+      <div class="gate-logo" id="gateLogo"></div>
+      <div class="gate-title">片段HUB</div>
+    </div>
+
+    <div class="gate-fields" id="gateFields">
+      <label class="gate-field">
+        <svg viewBox="0 0 24 24" class="ic gate-ic"><rect x="4.8" y="10.3" width="14.4" height="9.5" rx="2.5"/><path d="M8.4 10.3V7.9a3.6 3.6 0 0 1 7.2 0v2.4"/></svg>
+        <input type="password" id="gatePassword" placeholder="请输入访问密码" autocomplete="current-password" spellcheck="false">
+        <button type="button" class="gate-eye" data-eye="gatePassword" title="显示密码" aria-label="显示密码">
+          <svg viewBox="0 0 24 24" class="ic eye-show"><path d="M2.7 12S6.3 5.8 12 5.8 21.3 12 21.3 12 17.7 18.2 12 18.2 2.7 12 2.7 12Z"/><circle cx="12" cy="12" r="2.9"/></svg>
+          <svg viewBox="0 0 24 24" class="ic eye-hide"><path d="M4.5 4.5l15 15"/><path d="M10 6.2A9.9 9.9 0 0 1 12 6c5.7 0 9.3 6 9.3 6a17.6 17.6 0 0 1-3.5 4"/><path d="M6.6 8.2A17.4 17.4 0 0 0 2.7 12S6.3 18 12 18a9.8 9.8 0 0 0 3.2-.5"/></svg>
+        </button>
+      </label>
+      <label class="gate-field" id="gateField2" hidden>
+        <svg viewBox="0 0 24 24" class="ic gate-ic"><rect x="4.8" y="10.3" width="14.4" height="9.5" rx="2.5"/><path d="M8.4 10.3V7.9a3.6 3.6 0 0 1 7.2 0v2.4"/></svg>
+        <input type="password" id="gatePassword2" placeholder="再输入一次确认" autocomplete="new-password" spellcheck="false">
+        <button type="button" class="gate-eye" data-eye="gatePassword2" title="显示密码" aria-label="显示密码">
+          <svg viewBox="0 0 24 24" class="ic eye-show"><path d="M2.7 12S6.3 5.8 12 5.8 21.3 12 21.3 12 17.7 18.2 12 18.2 2.7 12 2.7 12Z"/><circle cx="12" cy="12" r="2.9"/></svg>
+          <svg viewBox="0 0 24 24" class="ic eye-hide"><path d="M4.5 4.5l15 15"/><path d="M10 6.2A9.9 9.9 0 0 1 12 6c5.7 0 9.3 6 9.3 6a17.6 17.6 0 0 1-3.5 4"/><path d="M6.6 8.2A17.4 17.4 0 0 0 2.7 12S6.3 18 12 18a9.8 9.8 0 0 0 3.2-.5"/></svg>
+        </button>
+      </label>
+      <button type="submit" class="gate-submit" id="gateSubmit">解锁</button>
+    </div>
+
+    <div class="gate-err" id="gateErr"></div>
+    <div class="gate-hint" id="gateHint"></div>
+    <button type="button" class="gate-link" id="gateForgot" hidden>忘记密码？</button>
+  </form>
+</div>
+
+<!-- ===== 主界面 ===== -->
+<div id="app" class="app" hidden>
+  <!-- 左：文件夹 -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo" id="brandLogo"></div>
+      <div class="brand-text">
+        <b>片段HUB</b>
+        <span>SnippetHub</span>
+      </div>
+      <button class="m-only m-close" id="btnSideClose" title="关闭" aria-label="关闭">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M7 7l10 10M17 7L7 17"/></svg>
+      </button>
+    </div>
+
+    <div class="side-group">
+      <div class="side-label"><span>个人收藏</span></div>
+      <div class="side-items">
+        <button class="side-item" data-view="all">
+          <svg viewBox="0 0 24 24" class="ic"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h4l2 2h7A1.5 1.5 0 0 1 20 7.5v11A1.5 1.5 0 0 1 18.5 20h-13A1.5 1.5 0 0 1 4 18.5z"/></svg>
+          <span>全部片段</span><em class="cnt" id="cntAll">0</em>
+        </button>
+        <button class="side-item" data-view="pinned">
+          <svg viewBox="0 0 24 24" class="ic"><path d="M12 20.5V9.5"/><path d="m6.8 14.6 5.2-5.2 5.2 5.2"/><path d="M5 4.5h14"/></svg>
+          <span>置顶片段</span><em class="cnt" id="cntPinned">0</em>
+        </button>
+        <button class="side-item" data-view="trash">
+          <svg viewBox="0 0 24 24" class="ic"><path d="M4.6 6.9h14.8"/><path d="M9 6.9V5a1.2 1.2 0 0 1 1.2-1.2h3.6A1.2 1.2 0 0 1 15 5v1.9"/><path d="M6.5 6.9l.8 12.2A2 2 0 0 0 9.3 21h5.4a2 2 0 0 0 2-1.9l.8-12.2"/><path d="M10.2 10.6v6.6M13.8 10.6v6.6"/></svg>
+          <span>废纸篓</span><em class="cnt" id="cntTrash">0</em>
+        </button>
+      </div>
+    </div>
+
+    <div class="side-scroll">
+      <div class="side-group">
+        <div class="side-label"><span>文件夹</span></div>
+        <div class="side-items folder-list" id="folderList"></div>
+        <button class="side-empty folder-empty" id="folderEmpty" type="button">
+          <svg viewBox="0 0 24 24" class="ic"><path d="M12 5v14M5 12h14"/></svg>
+          <span>新建文件夹</span>
+        </button>
+      </div>
+
+      <div class="side-group">
+        <div class="side-label"><span>标签</span></div>
+        <div class="side-items" id="tagList"></div>
+        <div class="side-empty" id="tagEmpty"></div>
+      </div>
+    </div>
+
+    <div class="bottom-bar">
+      <button class="settings-btn" id="btnSettings">
+        <svg viewBox="0 0 24 24" class="ic"><circle cx="12" cy="12" r="3.1"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.9 19.3a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.7 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.7 8.9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.7a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.3 9v.09a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z"/></svg>
+        <span>应用设置</span>
+      </button>
+      <button class="logout-btn" id="btnLogout" title="退出登录" aria-label="退出登录">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M14.6 4H18a1.8 1.8 0 0 1 1.8 1.8v12.4A1.8 1.8 0 0 1 18 20h-3.4"/><path d="M9.8 8.4 13.4 12l-3.6 3.6"/><path d="M13.4 12H4.6"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- 中：文档列表 -->
+  <section class="listpane">
+    <div class="list-head">
+      <button class="m-only list-back" id="btnSideDrawer" title="分类" aria-label="分类">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M14.5 6.5 9 12l5.5 5.5"/></svg>
+      </button>
+      <div class="search">
+        <svg viewBox="0 0 24 24" class="ic"><circle cx="11" cy="11" r="6.6"/><path d="M16 16l4.2 4.2"/></svg>
+        <input id="search" placeholder="搜索全部内容" spellcheck="false" size="1" autocomplete="off" aria-autocomplete="none" enterkeyhint="search">
+        <button class="search-clear" id="searchClear" type="button" title="清空搜索" aria-label="清空搜索" hidden>
+          <svg viewBox="0 0 24 24" class="ic"><path d="M7 7l10 10M17 7L7 17"/></svg>
+        </button>
+      </div>
+      <button class="add-btn" id="btnNewDoc" title="新建片段">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
+    <div class="list-caption">
+      <span id="listTitle">全部片段</span>
+      <em id="listCount"></em>
+      <button class="caption-btn" id="btnEmptyTrash" hidden>清空废纸篓</button>
+    </div>
+    <div class="doc-list" id="docList"></div>
+    <div class="list-empty" id="listEmpty">这里还是空的</div>
+  </section>
+
+  <!-- 右：内容 -->
+  <main class="content">
+    <header class="doc-head">
+      <button class="m-only m-menu" id="btnDrawer" data-tip="浏览片段" aria-label="浏览片段">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M4 6.5h16M4 12h16M4 17.5h11"/></svg>
+      </button>
+      <div class="doc-head-main">
+        <input id="docTitle" class="doc-title" placeholder="未命名片段" spellcheck="false" autocomplete="off" readonly>
+        <div class="doc-meta" id="docMeta"></div>
+      </div>
+      <div class="doc-actions">
+        <button class="act" id="btnEdit" data-act="edit" data-tip="编辑" aria-label="编辑">
+          <svg viewBox="0 0 24 24" class="ic"><path d="M11.5 5H6.4A2.4 2.4 0 0 0 4 7.4v10.2A2.4 2.4 0 0 0 6.4 20h10.2a2.4 2.4 0 0 0 2.4-2.4v-5.1"/><path d="M17.3 3.7a2.3 2.3 0 0 1 3.2 3.2L13 14.4l-3.6.9.9-3.6z"/></svg>
+        </button>
+        <button class="act" id="btnToc" data-act="toc" data-tip="显示 / 隐藏目录" aria-label="显示 / 隐藏目录">
+          <svg viewBox="0 0 24 24" class="ic"><path d="M8.4 6.4h11.4M8.4 12h11.4M8.4 17.6h11.4"/><circle cx="4.6" cy="6.4" r="1.15" fill="currentColor" stroke="none"/><circle cx="4.6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="4.6" cy="17.6" r="1.15" fill="currentColor" stroke="none"/></svg>
+        </button>
+        <button class="act" id="btnTags" data-act="tags" data-tip="设置标签" aria-label="设置标签">
+          <svg viewBox="0 0 24 24" class="ic"><path d="M11.6 4H20v8.4a2 2 0 0 1-.6 1.4l-6 6a2 2 0 0 1-2.8 0l-5.4-5.4a2 2 0 0 1 0-2.8l5-5A2 2 0 0 1 11.6 4z"/><circle cx="15.8" cy="8.2" r="1.15"/></svg>
+        </button>
+        <button class="act" id="btnCopy" data-act="copy" data-tip="复制内容" aria-label="复制内容">
+          <svg viewBox="0 0 24 24" class="ic"><rect x="9" y="9" width="11" height="11" rx="2.2"/><path d="M15 6.2A2.2 2.2 0 0 0 12.8 4H6.2A2.2 2.2 0 0 0 4 6.2v6.6A2.2 2.2 0 0 0 6.2 15"/></svg>
+        </button>
+        <button class="act" id="btnInfo" data-act="info" data-tip="文档下载" aria-label="文档下载">
+          <svg viewBox="0 0 24 24" class="ic"><path d="M14 3.4H7.9A2.3 2.3 0 0 0 5.6 5.7v12.6a2.3 2.3 0 0 0 2.3 2.3h8.2a2.3 2.3 0 0 0 2.3-2.3V7.9z"/><path d="M13.9 3.5v3.6a1 1 0 0 0 1 1h3.5"/><path d="M12 11.4v6"/><path d="m9.3 14.7 2.7 2.7 2.7-2.7"/></svg>
+        </button>
+        <button class="act" id="btnPin" data-act="pin" data-tip="置顶 / 取消置顶" aria-label="置顶 / 取消置顶">
+          <svg viewBox="0 0 24 24" class="ic"><path d="M12 20.5V9.5"/><path d="m6.8 14.6 5.2-5.2 5.2 5.2"/><path d="M5 4.5h14"/></svg>
+        </button>
+        <button class="act" id="btnRestore" data-tip="恢复到原位置" hidden aria-label="恢复到原位置">
+          <svg viewBox="0 0 24 24" class="ic"><path d="M4 9.5h5.5"/><path d="M4 9.5V4"/><path d="M4.6 9.2A8 8 0 1 1 4 14.6"/></svg>
+        </button>
+        <button class="act danger" id="btnPurge" data-tip="彻底删除（不可恢复）" hidden aria-label="彻底删除（不可恢复）">
+          <svg viewBox="0 0 24 24" class="ic"><path d="M5 7h14M9.5 7V5.4h5V7M7.2 7l.8 11.2a1.6 1.6 0 0 0 1.6 1.5h4.8a1.6 1.6 0 0 0 1.6-1.5L16.8 7"/><path d="M10.5 10.5l3 3M13.5 10.5l-3 3"/></svg>
+        </button>
+        <button class="act danger" id="btnDeleteDoc" data-act="delete" data-tip="移至废纸篓" aria-label="移至废纸篓">
+          <svg viewBox="0 0 24 24" class="ic"><path d="M4.6 6.9h14.8"/><path d="M9 6.9V5a1.2 1.2 0 0 1 1.2-1.2h3.6A1.2 1.2 0 0 1 15 5v1.9"/><path d="M6.5 6.9l.8 12.2A2 2 0 0 0 9.3 21h5.4a2 2 0 0 0 2-1.9l.8-12.2"/><path d="M10.2 10.6v6.6M13.8 10.6v6.6"/></svg>
+        </button>
+        <!-- 手机端：以上动作收进一个「更多」按钮 -->
+        <button class="act m-act" id="btnMore" data-tip="更多操作" aria-label="更多操作">
+          <svg viewBox="0 0 24 24" class="ic"><circle cx="12" cy="5.4" r="1.55" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.55" fill="currentColor" stroke="none"/><circle cx="12" cy="18.6" r="1.55" fill="currentColor" stroke="none"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="doc-main">
+      <div class="doc-body" id="docBody">
+        <div class="doc-view md" id="docView"></div>
+        <textarea class="doc-editor" id="docEditor" spellcheck="false" hidden></textarea>
+        <div class="doc-preview md" id="docPreview"></div>
+        <div class="mode-switch" id="modeSwitch" hidden>
+          <button type="button" data-mode="write" class="on">书写模式</button>
+          <button type="button" data-mode="preview">预览模式</button>
+        </div>
+      </div>
+      <aside class="toc" id="tocPane" hidden>
+        <div class="toc-head">
+          <span>目录</span>
+          <button class="toc-btn" id="tocClose" title="隐藏目录" aria-label="隐藏目录">
+            <svg viewBox="0 0 24 24" class="ic"><path d="M7 7l10 10M17 7 7 17"/></svg>
+          </button>
+        </div>
+        <nav class="toc-list" id="tocList"></nav>
+      </aside>
+    </div>
+
+    <div class="save-bar" id="saveBar" hidden>
+      <span class="dirty-dot"></span>有未保存的改动
+      <button class="ghost-btn" id="btnDiscard">放弃</button>
+      <button class="primary-btn" id="btnSave" title="保存（Ctrl / ⌘ + S）">保存</button>
+    </div>
+
+    <footer class="attach-bar">
+      <div class="attach-label">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M12.5 7.5 8 12a3.5 3.5 0 0 0 5 5l4.6-4.6a5 5 0 0 0-7-7L6.4 9.6"/></svg>
+        附件
+        <em id="attachCount"></em>
+      </div>
+      <div class="attach-strip" id="attachStrip"></div>
+    </footer>
+
+    <div class="placeholder" id="placeholder">
+      <div class="ph-title">暂无内容</div>
+    </div>
+  </main>
+
+  <div class="m-mask" id="mMask"></div>
+</div>
+
+<!-- 右键菜单 -->
+<div class="ctx" id="ctxMenu" hidden>
+  <button data-act="new"><svg viewBox="0 0 24 24" class="ic"><path d="M12 5v14M5 12h14"/></svg>新建文件夹</button>
+  <button data-act="pin"><svg viewBox="0 0 24 24" class="ic"><path d="M12 20.5V9.5"/><path d="m6.8 14.6 5.2-5.2 5.2 5.2"/><path d="M5 4.5h14"/></svg>置顶</button>
+  <button data-act="move"><svg viewBox="0 0 24 24" class="ic"><path d="M4 7.2A1.6 1.6 0 0 1 5.6 5.6h3.5l1.8 1.8h7.5A1.6 1.6 0 0 1 20 9v8.2a1.6 1.6 0 0 1-1.6 1.6H5.6A1.6 1.6 0 0 1 4 17.2z"/><path d="M9.4 13.4h5M12.4 11.3l2.1 2.1-2.1 2.1"/></svg>修改文件夹</button>
+  <button data-act="rename"><svg viewBox="0 0 24 24" class="ic"><path d="M9.5 16.5 6 18l1.5-3.5 8.6-8.6a2.1 2.1 0 0 1 3 3z"/></svg>重命名</button>
+  <button data-act="delete" class="danger"><svg viewBox="0 0 24 24" class="ic"><path d="M5 7h14M9.5 7V5.4h5V7M7 7l.9 12.1h8.2L17 7"/></svg>删除</button>
+  <button data-act="tagcolor"><svg viewBox="0 0 24 24" class="ic"><circle cx="12" cy="12" r="8"/><path d="M12 8.5v7M8.5 12h7"/></svg>自定义颜色</button>
+  <button data-act="restore"><svg viewBox="0 0 24 24" class="ic"><path d="M4 9.5h5.5"/><path d="M4 9.5V4"/><path d="M4.6 9.2A8 8 0 1 1 4 14.6"/></svg>恢复</button>
+  <button data-act="purge" class="danger"><svg viewBox="0 0 24 24" class="ic"><path d="M5 7h14M9.5 7V5.4h5V7M7.2 7l.8 11.2a1.6 1.6 0 0 0 1.6 1.5h4.8a1.6 1.6 0 0 0 1.6-1.5L16.8 7"/></svg>彻底删除</button>
+</div>
+
+<!-- 编辑器右键菜单 -->
+<div class="ctx" id="editMenu" hidden>
+  <button data-eact="image"><svg viewBox="0 0 24 24" class="ic"><rect x="4" y="5" width="16" height="14" rx="2.4"/><circle cx="9" cy="10" r="1.6"/><path d="m5 17 4.5-4.5L14 17l2.5-2.5L20 18"/></svg>插入图片</button>
+  <button data-eact="link"><svg viewBox="0 0 24 24" class="ic"><path d="M10 13.5a3.5 3.5 0 0 0 5 0l2.5-2.5a3.5 3.5 0 0 0-5-5L11 7.5"/><path d="M14 10.5a3.5 3.5 0 0 0-5 0L6.5 13a3.5 3.5 0 0 0 5 5L13 16.5"/></svg>插入链接<em class="kbd">⌘K</em></button>
+  <button data-eact="codeblock"><svg viewBox="0 0 24 24" class="ic"><path d="m9 8-4 4 4 4"/><path d="m15 8 4 4-4 4"/></svg>插入代码块</button>
+  <button data-eact="table"><svg viewBox="0 0 24 24" class="ic"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 10h16M4 14.5h16M10 5v14"/></svg>插入表格</button>
+  <div class="sep"></div>
+  <div class="ctx-h">
+    <button type="button" data-h="1" title="一级标题">H1</button>
+    <button type="button" data-h="2" title="二级标题">H2</button>
+    <button type="button" data-h="3" title="三级标题">H3</button>
+    <button type="button" data-h="4" title="四级标题">H4</button>
+    <button type="button" data-h="5" title="五级标题">H5</button>
+    <button type="button" data-h="6" title="六级标题">H6</button>
+  </div>
+  <div class="sep"></div>
+  <button data-eact="bold"><svg viewBox="0 0 24 24" class="ic"><path d="M8 5h5.2a3.4 3.4 0 0 1 0 6.8H8z"/><path d="M8 11.8h5.8a3.6 3.6 0 0 1 0 7.2H8z"/></svg>加粗<em class="kbd">⌘B</em></button>
+  <button data-eact="italic"><svg viewBox="0 0 24 24" class="ic"><path d="M10 5h7M7 19h7M14 5l-4 14"/></svg>斜体<em class="kbd">⌘I</em></button>
+  <button data-eact="inlinecode"><svg viewBox="0 0 24 24" class="ic"><path d="m9.5 8.5-3.5 3.5 3.5 3.5"/><path d="m14.5 8.5 3.5 3.5-3.5 3.5"/></svg>行内代码<em class="kbd">⌘E</em></button>
+</div>
+
+<!-- 文档信息浮层 -->
+<div class="info-pop" id="infoPop" hidden></div>
+
+<!-- 手机端：正文操作菜单 -->
+<div class="doc-menu" id="docMenu" hidden></div>
+
+<!-- 标签编辑器 -->
+<div class="tag-pop" id="tagPop" hidden>
+  <div class="tp-title">标签</div>
+  <div class="tp-chips" id="tpChips"></div>
+  <input class="tp-input" id="tpInput" placeholder="输入标签后回车，如：Go" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" maxlength="20">
+  <div class="tp-hint" id="tpSuggest"></div>
+</div>
+
+<!-- 通用弹窗 -->
+<div class="modal" id="modal" hidden>
+  <div class="modal-mask"></div>
+  <div class="modal-card" id="modalCard"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="filePicker" multiple hidden>
+<input type="file" id="importPicker" accept=".zip,application/zip" hidden>
+<input type="file" id="imagePicker" accept="image/*" hidden>
+
+<script src="vendor/highlight.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

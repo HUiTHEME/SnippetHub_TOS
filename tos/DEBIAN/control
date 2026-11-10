@@ -1,0 +1,12 @@
+Package: snippethub
+Version: 1.0.0
+Architecture: amd64
+Section: utils
+Priority: optional
+Maintainer: 疯狂的大叔 <HUiTHEME@users.noreply.github.com>
+Depends: libc6 (>= 2.34), systemd
+Description: SnippetHub - private snippet and note vault
+ A private knowledge vault for code snippets, tutorials and notes.
+ Markdown with syntax highlighting, folders and tags, attachments,
+ light/dark themes, whole-vault backup and import. All data stays
+ on your own NAS.

@@ -1,0 +1,155 @@
+[zh-cn]
+name = "片段HUB"
+auth = "疯狂的大叔"
+descript = "私人内容仓库：把零散的代码片段、踩坑笔记与生活碎片存进来。支持 Markdown 语法、文件夹与标签双分类、附件上传、亮暗主题、整库备份与导入，所有数据只保存在你自己的 NAS 上。"
+important = "首次打开需要设置访问密码，请记好恢复码；数据默认保存在 /usr/local/snippethub/data。"
+
+[zh-hk]
+name = "片段HUB"
+auth = "瘋狂的大叔"
+descript = "私人內容倉庫：把零散的程式碼片段、踩坑筆記與生活碎片存進來。支援 Markdown 語法、資料夾與標籤雙分類、附件上傳、亮暗主題、整庫備份與匯入，所有資料只保存在你自己的 NAS 上。"
+important = "首次開啟需要設定存取密碼，請記好復原碼；資料預設保存在 /usr/local/snippethub/data。"
+
+[en-us]
+name = "SnippetHub"
+auth = "疯狂的大叔"
+descript = "A private vault for your code snippets, tutorials and notes. Markdown with syntax highlighting, folders and tags, attachments, light and dark themes, whole-vault backup and import. Everything stays on your own NAS."
+important = "You will set an access password on first launch - keep the recovery code safe. Data lives in /usr/local/snippethub/data."
+
+[ko-kr]
+name = "SnippetHub"
+auth = "疯狂的大叔"
+descript = "코드 스니펫, 튜토리얼, 메모를 모아 두는 개인 보관소입니다. Markdown과 구문 강조, 폴더와 태그, 첨부 파일, 라이트/다크 테마, 전체 백업 및 가져오기를 지원하며 모든 데이터는 사용자의 NAS에만 저장됩니다."
+important = "처음 실행할 때 접근 비밀번호를 설정합니다. 복구 코드를 안전하게 보관하세요. 데이터는 기본적으로 /usr/local/snippethub/data에 저장됩니다."
+
+[ja-jp]
+name = "SnippetHub"
+auth = "疯狂的大叔"
+descript = "コードスニペット、チュートリアル、メモをまとめる個人用の保管庫です。Markdown とシンタックスハイライト、フォルダーとタグ、添付ファイル、ライト／ダークテーマ、一括バックアップと復元に対応。データはすべてご自身の NAS に保存されます。"
+important = "初回起動時にアクセスパスワードを設定します。復元コードは大切に保管してください。データは既定で /usr/local/snippethub/data に保存されます。"
+
+[de-de]
+name = "SnippetHub"
+auth = "疯狂的大叔"
+descript = "Ein privater Wissensspeicher für Codeschnipsel, Anleitungen und Notizen. Markdown mit Syntaxhervorhebung, Ordner und Tags, Anhänge, helles und dunkles Design, Komplett-Backup und Import. Alle Daten bleiben auf Ihrem eigenen NAS."
+important = "Beim ersten Start legen Sie ein Zugangspasswort fest - bewahren Sie den Wiederherstellungscode auf. Die Daten liegen standardmäßig in /usr/local/snippethub/data."
+
+[fr-fr]
+name = "SnippetHub"
+auth = "疯狂的大叔"
+descript = "Un coffre privé pour vos extraits de code, tutoriels et notes. Markdown avec coloration syntaxique, dossiers et étiquettes, pièces jointes, thèmes clair et sombre, sauvegarde et import complets. Toutes les données restent sur votre NAS."
+important = "Un mot de passe d'accès est défini au premier lancement : conservez le code de récupération. Les données sont stockées par défaut dans /usr/local/snippethub/data."
+
+[it-it]
+name = "SnippetHub"
+auth = "疯狂的大叔"
+descript = "Un archivio privato per frammenti di codice, guide e note. Markdown con evidenziazione della sintassi, cartelle ed etichette, allegati, temi chiaro e scuro, backup e importazione completi. Tutti i dati restano sul tuo NAS."
+important = "Al primo avvio viene impostata una password di accesso: conserva il codice di recupero. I dati sono in /usr/local/snippethub/data."
+
+[es-es]
+name = "SnippetHub"
+auth = "疯狂的大叔"
+descript = "Un baúl privado para tus fragmentos de código, tutoriales y notas. Markdown con resaltado de sintaxis, carpetas y etiquetas, archivos adjuntos, temas claro y oscuro, copia de seguridad e importación completas. Todo se queda en tu propio NAS."
+important = "En el primer inicio se establece una contraseña de acceso: guarda el código de recuperación. Los datos se guardan en /usr/local/snippethub/data."
+
+[hu-hu]
+name = "SnippetHub"
+auth = "疯狂的大叔"
+descript = "Személyes tudástár kódrészletekhez, útmutatókhoz és jegyzetekhez. Markdown szintaxiskiemeléssel, mappák és címkék, mellékletek, világos és sötét téma, teljes mentés és importálás. Minden adat a saját NAS-án marad."
+important = "Első indításkor hozzáférési jelszót kell beállítani - őrizze meg a helyreállítási kódot. Az adatok alapértelmezésben a /usr/local/snippethub/data mappában vannak."
+
+[pl-pl]
+name = "SnippetHub"
+auth = "疯狂的大叔"
+descript = "Prywatny skarbiec na fragmenty kodu, poradniki i notatki. Markdown z podświetlaniem składni, foldery i tagi, załączniki, motywy jasny i ciemny, pełna kopia zapasowa i import. Wszystkie dane pozostają na Twoim NAS."
+important = "Przy pierwszym uruchomieniu ustawiane jest hasło dostępu - zachowaj kod odzyskiwania. Dane domyślnie znajdują się w /usr/local/snippethub/data."
+
+[tr-tr]
+name = "SnippetHub"
+auth = "疯狂的大叔"
+descript = "Kod parçacıkları, eğitimler ve notlar için kişisel bir kasa. Söz dizimi vurgulu Markdown, klasörler ve etiketler, ekler, açık ve koyu tema, tam yedekleme ve içe aktarma. Tüm veriler kendi NAS'ınızda kalır."
+important = "İlk açılışta bir erişim parolası belirlersiniz; kurtarma kodunu saklayın. Veriler varsayılan olarak /usr/local/snippethub/data klasöründe tutulur."
+
+[ru-ru]
+name = "SnippetHub"
+auth = "疯狂的大叔"
+descript = "Личное хранилище для фрагментов кода, руководств и заметок. Markdown с подсветкой синтаксиса, папки и теги, вложения, светлая и тёмная темы, полное резервное копирование и импорт. Все данные остаются на вашем NAS."
+important = "При первом запуске задаётся пароль доступа - сохраните код восстановления. Данные по умолчанию хранятся в /usr/local/snippethub/data."
+
+[pt-pt]
+name = "SnippetHub"
+auth = "疯狂的大叔"
+descript = "Um cofre privado para excertos de código, tutoriais e notas. Markdown com realce de sintaxe, pastas e etiquetas, anexos, temas claro e escuro, cópia de segurança e importação completas. Todos os dados ficam no seu próprio NAS."
+important = "Na primeira execução é definida uma palavra-passe de acesso - guarde o código de recuperação. Os dados ficam em /usr/local/snippethub/data."
+
+[cs-cz]
+name = "SnippetHub"
+auth = "疯狂的大叔"
+descript = "A private vault for your code snippets, tutorials and notes. Markdown with syntax highlighting, folders and tags, attachments, light and dark themes, whole-vault backup and import. Everything stays on your own NAS."
+important = "You will set an access password on first launch - keep the recovery code safe."
+
+[da-dk]
+name = "SnippetHub"
+auth = "疯狂的大叔"
+descript = "A private vault for your code snippets, tutorials and notes. Markdown with syntax highlighting, folders and tags, attachments, light and dark themes, whole-vault backup and import. Everything stays on your own NAS."
+important = "You will set an access password on first launch - keep the recovery code safe."
+
+[nl-nl]
+name = "SnippetHub"
+auth = "疯狂的大叔"
+descript = "A private vault for your code snippets, tutorials and notes. Markdown with syntax highlighting, folders and tags, attachments, light and dark themes, whole-vault backup and import. Everything stays on your own NAS."
+important = "You will set an access password on first launch - keep the recovery code safe."
+
+[nb-no]
+name = "SnippetHub"
+auth = "疯狂的大叔"
+descript = "A private vault for your code snippets, tutorials and notes. Markdown with syntax highlighting, folders and tags, attachments, light and dark themes, whole-vault backup and import. Everything stays on your own NAS."
+important = "You will set an access password on first launch - keep the recovery code safe."
+
+[sv-se]
+name = "SnippetHub"
+auth = "疯狂的大叔"
+descript = "A private vault for your code snippets, tutorials and notes. Markdown with syntax highlighting, folders and tags, attachments, light and dark themes, whole-vault backup and import. Everything stays on your own NAS."
+important = "You will set an access password on first launch - keep the recovery code safe."
+
+[el-gr]
+name = "SnippetHub"
+auth = "疯狂的大叔"
+descript = "A private vault for your code snippets, tutorials and notes. Markdown with syntax highlighting, folders and tags, attachments, light and dark themes, whole-vault backup and import. Everything stays on your own NAS."
+important = "You will set an access password on first launch - keep the recovery code safe."
+
+[ro-ro]
+name = "SnippetHub"
+auth = "疯狂的大叔"
+descript = "A private vault for your code snippets, tutorials and notes. Markdown with syntax highlighting, folders and tags, attachments, light and dark themes, whole-vault backup and import. Everything stays on your own NAS."
+important = "You will set an access password on first launch - keep the recovery code safe."
+
+[th-th]
+name = "SnippetHub"
+auth = "疯狂的大叔"
+descript = "A private vault for your code snippets, tutorials and notes. Markdown with syntax highlighting, folders and tags, attachments, light and dark themes, whole-vault backup and import. Everything stays on your own NAS."
+important = "You will set an access password on first launch - keep the recovery code safe."
+
+[vi-vn]
+name = "SnippetHub"
+auth = "疯狂的大叔"
+descript = "A private vault for your code snippets, tutorials and notes. Markdown with syntax highlighting, folders and tags, attachments, light and dark themes, whole-vault backup and import. Everything stays on your own NAS."
+important = "You will set an access password on first launch - keep the recovery code safe."
+
+[id-id]
+name = "SnippetHub"
+auth = "疯狂的大叔"
+descript = "A private vault for your code snippets, tutorials and notes. Markdown with syntax highlighting, folders and tags, attachments, light and dark themes, whole-vault backup and import. Everything stays on your own NAS."
+important = "You will set an access password on first launch - keep the recovery code safe."
+
+[ar-sa]
+name = "SnippetHub"
+auth = "疯狂的大叔"
+descript = "A private vault for your code snippets, tutorials and notes. Markdown with syntax highlighting, folders and tags, attachments, light and dark themes, whole-vault backup and import. Everything stays on your own NAS."
+important = "You will set an access password on first launch - keep the recovery code safe."
+
+[he-il]
+name = "SnippetHub"
+auth = "疯狂的大叔"
+descript = "A private vault for your code snippets, tutorials and notes. Markdown with syntax highlighting, folders and tags, attachments, light and dark themes, whole-vault backup and import. Everything stays on your own NAS."
+important = "You will set an access password on first launch - keep the recovery code safe."

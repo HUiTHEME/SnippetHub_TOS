@@ -1,0 +1,16 @@
+# 构建产物
+dist/
+*.deb
+*.fpk
+
+# macOS
+.DS_Store
+._*
+
+# 本地工作区笔记（不属于源码）
+.workbuddy/
+
+# 编辑器
+*.swp
+.idea/
+.vscode/
