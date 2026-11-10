@@ -12,21 +12,6 @@
 
 ![主界面](docs/screenshot-main.png)
 
-<details>
-<summary>亮色主题 / 标签编辑 / 应用设置 / 手机端</summary>
-
-![亮色主题](docs/screenshot-light.png)
-![标签编辑](docs/screenshot-tags.png)
-![应用设置](docs/screenshot-settings.png)
-![手机端](docs/screenshot-mobile.png)
-![手机端列表](docs/screenshot-mobile-list.png)
-![手机端操作菜单](docs/screenshot-mobile-actions.png)
-![表格](docs/screenshot-table.png)
-![目录](docs/screenshot-toc.png)
-![文档信息](docs/screenshot-info.png)
-
-</details>
-
 ## 功能
 
 | 区域 | 说明 |

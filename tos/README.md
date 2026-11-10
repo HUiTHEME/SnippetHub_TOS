@@ -6,8 +6,6 @@ systemd 单元、Debian 生命周期脚本，以及打包脚本。业务代码�
 
 产物：`dist/tos/snippethub_<platform>.deb`（单包 deb，安装到 `/usr/local/snippethub/`）
 
-![在 TOS 7 上运行的样子](../docs/screenshot-tos7.png)
-
 ---
 
 ## 一、目录结构
