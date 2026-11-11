@@ -28,9 +28,12 @@ Group=allusers
 WorkingDirectory=/usr/local/snippethub
 EnvironmentFile=-/usr/local/snippethub/snippethub.env
 ExecStart=/usr/local/snippethub/bin/snippethub -data /usr/local/snippethub/data -socket /var/api/snippethub.sock
-# 前面加 "-" 是允许删除失败：/var/api 是 1777 共享目录，
-# 万一 socket 路径被别的用户的文件占住，rm 会 EPERM，
-# 不带 "-" 的话 systemd 会把一次正常停机记成「停用失败」。
+# 启动前用 root 做三件事（前面加 "+" 表示脱离 User= 以完整权限执行）：
+#   1. /var/api 可能不存在，先建出来；
+#   2. 它的权限必须是 1777：TOS 开机重建 /tmp/api 后可能是 755，
+#      应用用户在里面既建不了也删不掉自己的 socket，会 bind: permission denied；
+#   3. 上一轮异常退出可能留下 socket，先删掉，否则 bind: address already in use。
+ExecStartPre=+/bin/sh -c "mkdir -p /var/api; chmod 1777 /var/api; rm -f /var/api/snippethub.sock"
 ExecStopPost=-/bin/rm -f /var/api/snippethub.sock
 TimeoutStartSec=30
 TimeoutStopSec=10

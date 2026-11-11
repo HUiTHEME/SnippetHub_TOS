@@ -715,7 +715,6 @@ async function setView(type, id) {
   state.doc = null;
   state.editing = false;
   state.dirty = false;
-  $('#saveBar').hidden = true;
   $('#docEditor').hidden = true;
   await loadData();
   if (!state.currentId) renderDocArea();
@@ -1126,8 +1125,7 @@ async function openDoc(id, opts = {}) {
     state.currentId = id;
     state.editing = false;
     state.dirty = false;
-    $('#saveBar').hidden = true;
-    closeTagPop();
+      closeTagPop();
     renderDocArea();
     renderList();
     if (opts.edit) startEdit();
@@ -1143,7 +1141,6 @@ function renderDocArea() {
   closeInfoPop();
   $('#placeholder').classList.toggle('show', !has);
   $('#docTitle').hidden = !has;
-  $('#docMeta').hidden = !has;
   $('.doc-actions').style.display = has ? 'flex' : 'none';
   $('.attach-bar').style.display = has ? 'block' : 'none';
   $('#docView').style.display = has && !state.editing ? 'block' : 'none';
@@ -1172,23 +1169,6 @@ function renderDocHead() {
   if (titleAnim) stopTitleScroll();
   title.readOnly = !state.editing || inTrash;
   title.classList.toggle('editing', state.editing && !inTrash);
-
-  // 元信息一行：分类 → 标签 → 时间 → 附件（不换行）
-  const fname = folderName(d.folderId);
-  const meta = [];
-  if (fname) meta.push(`<span class="chip">${esc(fname)}</span>`);
-  const tagHTML = (d.tags || []).map((t) => tagChipHTML(t, 'tag-chip')).join('');
-  if (tagHTML) meta.push(`<span class="meta-tags">${tagHTML}</span>`);
-  meta.push(`<span class="meta-time">${fmtTime(d.updatedAt)}</span>`);
-  if (d.attachments && d.attachments.length) {
-    meta.push('<span class="dot"></span>');
-    meta.push(`<span>${d.attachments.length} 个附件</span>`);
-  }
-  if (inTrash) {
-    meta.push('<span class="dot"></span>');
-    meta.push(`<span class="trash-hint">已删除 ${fmtTime(d.deletedAt)}</span>`);
-  }
-  $('#docMeta').innerHTML = meta.join('');
 
   // 按钮：废纸篓里只保留「恢复 / 彻底删除」
   $('#btnPin').hidden = inTrash;
@@ -1265,7 +1245,6 @@ function startEdit() {
   ed.hidden = false;
   ed.value = state.doc.content || '';
   $('#docTitle').readOnly = false;
-  $('#saveBar').hidden = true;
   renderAttachments();
   renderDocHead();
   renderToc();
@@ -1277,7 +1256,6 @@ function stopEdit() {
   state.editing = false;
   state.dirty = false;
   resetEditMode();
-  $('#saveBar').hidden = true;
   $('#docTitle').readOnly = true;
   renderDocArea();
   renderDocHead();
@@ -1297,8 +1275,7 @@ async function saveDoc(silent, keepEditing) {
     const saved = await api('docs/' + state.doc.id, { method: 'PUT', body: { title, content } });
     state.doc = Object.assign({}, state.doc, saved);
     state.dirty = false;
-    $('#saveBar').hidden = true;
-    await loadData();
+      await loadData();
     if (state.editing && keepEditing) {
       // 留在编辑态：把光标放回原处
       if (document.activeElement === ed || state.editing) {
@@ -1320,7 +1297,6 @@ async function saveDoc(silent, keepEditing) {
 
 function markDirty() {
   state.dirty = true;
-  $('#saveBar').hidden = false;
 }
 
 // 有未保存的改动时，关窗口 / 刷新先拦一下
@@ -1390,18 +1366,6 @@ $('#docTitle').addEventListener('click', () => {
   const el = $('#docTitle');
   if (!isMobile() || !el.readOnly) return;
   playTitleScroll();
-});
-
-$('#btnSave').addEventListener('click', () => saveDoc());
-$('#btnDiscard').addEventListener('click', async () => {
-  if (!state.doc) return;
-  const d = await api('docs/' + state.doc.id);
-  state.doc = d;
-  state.editing = false;
-  state.dirty = false;
-  $('#saveBar').hidden = true;
-  renderDocArea();
-  toast('已还原');
 });
 
 $('#btnEdit').addEventListener('click', async () => {
@@ -2216,6 +2180,7 @@ function openInfoPop(anchor) {
         <svg viewBox="0 0 24 24" class="ic"><path d="M7.2 8.6V4.7h9.6v3.9"/><rect x="4.2" y="8.6" width="15.6" height="7" rx="2"/><path d="M7.2 15.6h9.6v3.7H7.2z"/><path d="M17 11.6h.01"/></svg>
       </button>
     </div>
+    <div class="ip-row"><span>本文发布</span><b>${esc(fmtTime(d.updatedAt))}</b></div>
     <div class="ip-row"><span>本文字数</span><b>${chars.toLocaleString('zh-CN')} 字</b></div>
     <div class="ip-path">${esc(path)}</div>
     <button class="ip-dl" id="btnDownloadDoc">
@@ -2540,11 +2505,6 @@ $('#btnEmptyTrash').addEventListener('click', () => {
 });
 
 /* ---------- 标签编辑 ---------- */
-$('#docMeta').addEventListener('click', (e) => {
-  const chip = e.target.closest('[data-tag]');
-  if (chip) setView('tag', chip.dataset.tag);
-});
-
 function renderTagPop() {
   const d = state.doc;
   if (!d) return;
