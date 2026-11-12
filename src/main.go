@@ -42,12 +42,12 @@ func main() {
 		}
 	}
 
-	dataDir := *dataIn
-	if dataDir == "" {
-		dataDir = filepath.Join(".", "data")
-	}
-	if abs, err := filepath.Abs(dataDir); err == nil {
-		dataDir = abs
+	// 数据默认放共享文件夹 /VolumeN/snippethub（卸载/重装都不影响），
+	// 共享夹还没建好时退回安装目录下的 data。老版本的数据会自动搬一次。
+	dataDir, legacyDir := pickDataDir(*dataIn)
+	if err := migrateData(legacyDir, dataDir); err != nil {
+		log.Printf("migrate data failed: %v —— 继续使用原目录 %s", err, legacyDir)
+		dataDir = legacyDir
 	}
 	// 首次启动时数据目录可能还没建（安装脚本会建，但目录被清掉时也要能自己恢复）。
 	if err := os.MkdirAll(dataDir, 0o750); err != nil {
@@ -165,9 +165,9 @@ func main() {
 		if err != nil {
 			log.Fatalf("unix socket listen failed: %v", err)
 		}
-		// TOS 规范 8.3.1 写的是 0660，但 /var/api 是 1777 共享目录、
-		// 平台 nginx 也以 allusers 组访问，0666 两边都能工作。
-		_ = os.Chmod(sockPath, 0o666)
+		// 按规范 8.3.1 给 0660：属主是应用用户，属组是 allusers（进程的主组），
+		// 平台 nginx 以 root / allusers 组运行照样能连，其它用户连不上。
+		_ = os.Chmod(sockPath, 0o660)
 		log.Printf("%s %s listening on %s (unix socket only, no TCP port)", appNameZH, appNameEN, sockPath)
 
 		go func() { <-stop; log.Println("shutting down (signal received)"); shutdown() }()

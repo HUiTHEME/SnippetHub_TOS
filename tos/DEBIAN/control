@@ -1,5 +1,5 @@
 Package: snippethub
-Version: 1.0.6
+Version: 1.0.8
 Architecture: amd64
 Section: utils
 Priority: optional

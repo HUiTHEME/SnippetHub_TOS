@@ -123,17 +123,19 @@ TOS 的 `/<appid>/` 路由、`/v2/proxy/<appid>/` 代理和平台鉴权（`auth_
 
 ## 五、数据放在哪
 
-默认 `/usr/local/snippethub/data`（物理位置 `/Volume<N>/@apps/snippethub/data`）。
-它不在 deb 文件清单里，所以**升级、卸载重装都不会丢**。
+数据在**共享文件夹** `/VolumeN/snippethub`（平台按 `config.ini` 的 `share_folders` 建，
+dpkg 侧载时由 `postinst` 兜底创建），不在安装目录里。这样：
 
-**应用内不提供「数据目录」设置**。原因：TOS 的目录权限是自研的
-`tmacl`，应用用户进不去共享文件夹和个人目录，界面上让人填路径只会一路报「没有权限」，
-反而把「数据到底存哪儿」这件事搞复杂。现在数据固定放在上面的默认目录，
-位置由 systemd 的 `-data` 参数决定，要改就改 `/usr/local/snippethub/snippethub.env`。
+- 卸载后 `/usr/local/snippethub` 会被清干净（应用中心卸载检查不留残留）；
+- 升级、重装、卸载都不会碰数据；
+- 「文件管理」里能看到，SMB 挂上去能直接翻 `notes/*.md`。
 
-`notes/<文件夹>/<标题>.md` 就是磁盘上的原始 Markdown，SMB 挂上去能直接看、直接改。
+程序启动时按 `/Volume1`~`/Volume9` 找第一个存在且可写的 `snippethub` 目录，
+都没有才退回安装目录下的 `data/`（兜底，正常安装走不到）。
+老版本（≤1.0.6）的数据在安装目录里，首次启动会自动复制过去并按文件数/字节数核对，
+旧目录**不删**，确认没问题后可以自己清掉。
 
----
+日志仍在 `/usr/local/snippethub/logs`，随安装目录一起被卸载清理。
 
 ## 六、踩过的坑（改代码前先看这几条）
 

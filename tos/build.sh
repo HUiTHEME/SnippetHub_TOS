@@ -78,9 +78,24 @@ PYV
   local web="$STAGE/webui-src/webui"
   mkdir -p "$web"
   cp -R "$SRC/web/." "$web/"
-  # macOS 会在目录里留 ._xxx（AppleDouble）和 .DS_Store，
-  # 打进包里既没用又会被平台当成页面文件，这里一并清掉。
-  python3 -c "import os,sys; [os.remove(os.path.join(d,f)) for d,_,fs in os.walk(sys.argv[1]) for f in fs if f.startswith('._') or f in ('.DS_Store','Thumbs.db')]" "$web" 2>/dev/null || true
+  # macOS 会在目录里留 ._xxx（AppleDouble）和 .DS_Store。打进包里既没用，
+  # 又会被平台的静态扫描当成「不明二进制文件」（审核报告里的 V6 就是这么来的）。
+  # 注意：过滤必须逐条 try/except —— 以前写成列表推导，遇到一个删不掉的
+  # 整个推导就中断，后面的文件全留着，而且错误被 2>/dev/null 吞了。
+  python3 - "$web" <<'PYF'
+import os, sys
+root = sys.argv[1]
+removed = 0
+for dirpath, _, names in os.walk(root):
+    for n in names:
+        if n.startswith('._') or n in ('.DS_Store', 'Thumbs.db'):
+            try:
+                os.remove(os.path.join(dirpath, n))
+                removed += 1
+            except OSError as e:
+                print('WARN: 删不掉 %s: %s' % (n, e), file=sys.stderr)
+print('filtered %d macOS junk files' % removed)
+PYF
   # 版本号带进静态资源引用，升级后不会继续用旧缓存
   python3 - "$web/index.html" "$VERSION" <<'PY'
 import re, sys
@@ -90,7 +105,19 @@ html = re.sub(r'(href="[^"]*\.css)(\?v=[^"]*)?(")', r'\1?v=' + ver + r'\3', html
 html = re.sub(r'(src="(?!http)[^"]*\.js)(\?v=[^"]*)?(")', r'\1?v=' + ver + r'\3', html)
 open(path, 'w', encoding='utf-8').write(html)
 PY
-  ( cd "$STAGE/webui-src" && tar -cjf "$app/webui.bz2" webui )
+  # COPYFILE_DISABLE=1 很关键：macOS 的 bsdtar 默认会把扩展属性写成 AppleDouble
+  # （压缩包里凭空多出 ._app.js、webui/._style.css 这种），而它们是在 tar 内部
+  # 生成的 —— 事前删目录里的 ._ 根本拦不住，就是审核 V6 那个「捆绑可执行文件」。
+  ( cd "$STAGE/webui-src" && COPYFILE_DISABLE=1 tar --no-mac-metadata -cjf "$app/webui.bz2" webui )
+  # 出包前确认干净：这是审核 V6 的直接触发点，宁可这里报错也不要再被打回来
+  python3 - "$app/webui.bz2" <<'PYC'
+import bz2, io, sys, tarfile
+p = sys.argv[1]
+t = tarfile.open(fileobj=io.BytesIO(bz2.decompress(open(p, 'rb').read())))
+bad = [n for n in t.getnames() if n.split('/')[-1].startswith('._') or n.split('/')[-1] in ('.DS_Store', 'Thumbs.db')]
+if bad:
+    raise SystemExit('webui.bz2 里还有 macOS 垃圾文件：%s' % bad[:5])
+PYC
   clean_dir "$STAGE/webui-src"
 
   # --- DEBIAN ---
@@ -115,6 +142,26 @@ for dirpath, _, names in os.walk(root):
             if b'\r\n' in b:
                 open(p, 'wb').write(b.replace(b'\r\n', b'\n'))
 PY
+
+  # 权限最小化（审核 S11）：目录 755、普通文件 644、可执行 755，
+  # 不允许出现 777 或 setuid/setgid 位。
+  python3 - "$STAGE" <<'PYP'
+import os, sys, stat
+root = sys.argv[1]
+for dirpath, dirnames, filenames in os.walk(root):
+    for d in dirnames:
+        p = os.path.join(dirpath, d)
+        if not os.path.islink(p):
+            os.chmod(p, 0o755)
+    for f in filenames:
+        p = os.path.join(dirpath, f)
+        if os.path.islink(p):
+            continue
+        mode = os.stat(p).st_mode
+        keep_exec = bool(mode & 0o111) and (f.startswith('postinst') or f.startswith('prerm') or f.startswith('postrm') or f == 'snippethub')
+        os.chmod(p, 0o755 if keep_exec else 0o644)
+PYP
+  chmod 755 "$app/bin/$APPID"
 
   python3 "$ROOT/tools/mkdeb.py" "$STAGE" "$out"
   clean_dir "$STAGE"

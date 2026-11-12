@@ -4,7 +4,8 @@
 
 - 开发者 / 作者：**疯狂的大叔**
 - 项目主页：<https://github.com/HUiTHEME/SnippetHub_TOS>
-- 当前版本：**1.0.0**
+- 隐私政策：[PRIVACY.md](PRIVACY.md)（本应用不收集任何数据）
+- 当前版本：**1.0.7**
 - 支持平台：**铁威马 TerraMaster TOS 7**
   - 安装包：`dist/tos/snippethub_<platform>.deb`（Debian 包，`x86_64` / `aarch64` 各一个）
   - 安装位置：`/usr/local/snippethub/`，由 systemd 管理，页面从 `/<appid>/` 进入
@@ -52,16 +53,21 @@
 
 | 内容 | 位置 |
 | --- | --- |
-| 片段索引 / 标签 / 设置（`db.json`） | `/usr/local/snippethub/data/db.json` |
-| 每篇正文（`notes/<文件夹>/<标题>.md`） | `/usr/local/snippethub/data/notes/` |
-| 附件 | `/usr/local/snippethub/data/files/<片段ID>/` |
-| 程序本体 / 页面 | `/usr/local/snippethub/`（`bin/`、`webui/`） |
+| 片段索引 / 标签 / 设置（`db.json`） | `/Volume<N>/snippethub/db.json` |
+| 每篇正文（`notes/<文件夹>/<标题>.md`） | `/Volume<N>/snippethub/notes/` |
+| 附件 | `/Volume<N>/snippethub/files/<片段ID>/` |
+| 程序本体 / 页面 / 日志 | `/usr/local/snippethub/`（`bin/`、`webui/`、`logs/`） |
 
-物理上 `/usr/local/snippethub` 落在 `/Volume<N>/@apps/snippethub/`，而 `data/`、`logs/` 不在 deb 的文件清单里，
-所以**升级、卸载重装都不会动数据**。
+数据放在**共享文件夹**里，不在应用的安装目录中，所以：
 
-- 位置的唯一来源是启动参数 `-data`，写在 `/usr/local/snippethub/snippethub.env`，
-  改完 `systemctl restart snippethub` 即可。
+- 卸载、重装、升级都**不会碰数据**，安装目录也能被卸载脚本清干净；
+- 「文件管理」里能看到这个文件夹，SMB 挂上去直接翻 `notes/*.md`；
+- 想彻底删除，删掉这个共享文件夹即可。
+
+程序启动时按 `/Volume1` ~ `/Volume9` 的顺序找第一个存在且可写的 `snippethub` 文件夹；
+一个都没有时（比如侧载且共享夹还没建），才退回安装目录下的 `data/`。
+老版本（≤1.0.6）存在安装目录里的数据，首次启动会自动复制到共享夹并核对文件数/字节数，
+旧目录保留不删，确认无误后可以自行清理。
 - 之所以不提供界面上换目录：应用是以**非 root 的独立用户**运行的，别处目录的读写必须先由平台授权，
   而 TOS 的权限模型（`tmacl`）连 SSH 的 `setfacl` 都不认，界面上让人填路径只会一路报「没有权限」。
 - `notes/<文件夹>/<标题>.md` 就是磁盘上的原始 Markdown，SMB 挂上去能直接看、直接改。
@@ -217,7 +223,7 @@ dpkg --purge snippethub   # 连程序目录一起清掉（data/ 同样保留）
 
 ```bash
 sudo systemctl stop snippethub
-sudo -u snippethub /usr/local/snippethub/bin/snippethub -reset-password -data /usr/local/snippethub/data
+sudo -u snippethub /usr/local/snippethub/bin/snippethub -reset-password -data /Volume1/snippethub
 sudo systemctl start snippethub
 ```
 

@@ -27,7 +27,9 @@ User=snippethub
 Group=allusers
 WorkingDirectory=/usr/local/snippethub
 EnvironmentFile=-/usr/local/snippethub/snippethub.env
-ExecStart=/usr/local/snippethub/bin/snippethub -data /usr/local/snippethub/data -socket /var/api/snippethub.sock
+# 数据目录不写死：程序自己优先用共享夹 /VolumeN/snippethub，没有才退回安装目录
+# 下的 data（卸载时那个目录会被一起清掉，所以正常安装不该走到它）。
+ExecStart=/usr/local/snippethub/bin/snippethub -socket /var/api/snippethub.sock
 # 启动前用 root 做三件事（前面加 "+" 表示脱离 User= 以完整权限执行）：
 #   1. /var/api 可能不存在，先建出来；
 #   2. 它的权限必须是 1777：TOS 开机重建 /tmp/api 后可能是 755，
@@ -55,7 +57,10 @@ LockPersonality=true
 # 独立的 /tmp 命名空间会让服务以 226/NAMESPACE 起不来。
 # ProtectSystem=strict 下 /usr/local 是只读的，数据目录、日志目录和
 # /var/api 必须显式放开（应用只在 socket 上监听，不绑任何 TCP 端口）。
-ReadWritePaths=/usr/local/snippethub/data /usr/local/snippethub/logs /var/api
+# 数据在共享夹里，日志和兜底 data 在安装目录，socket 在 /var/api。
+# 每一项都加 `-` 前缀（路径不存在就跳过）：干净安装时 data/ 是不存在的，
+# 不带 `-` 会让 systemd 在「建立挂载命名空间」这一步直接 226/NAMESPACE 起不来。
+ReadWritePaths=-/usr/local/snippethub/data -/usr/local/snippethub/logs -/var/api -/Volume1/snippethub -/Volume2/snippethub -/Volume3/snippethub -/Volume4/snippethub -/Volume5/snippethub -/Volume6/snippethub
 LimitNOFILE=65536
 LimitNPROC=512
 

@@ -21,23 +21,39 @@ if ! id "${APPID}" >/dev/null 2>&1; then
     fi
 fi
 
-# 运行期目录：数据与日志。它们不是 deb 里的文件，所以升级、
-# 卸载再重装都不会被 dpkg 删掉，用户数据一直在 data 里。
-mkdir -p "${APP}/data" "${APP}/logs" /var/api
+# 运行期目录：日志放在安装目录（卸载时一起清掉），数据放共享文件夹。
+mkdir -p "${APP}/logs" /var/api
 
-# 属主给应用用户、属组给 allusers，和平台创建应用用户时保持一致
-if getent group allusers >/dev/null 2>&1; then
-    chown -R "${APPID}:allusers" "${APP}/data" "${APP}/logs" 2>/dev/null || true
-else
-    chown -R "${APPID}" "${APP}/data" "${APP}/logs" 2>/dev/null || true
+# 数据目录：/VolumeN/snippethub（共享文件夹）。
+# 从应用中心安装时平台会按 config.ini 的 share_folders 建好并授权；
+# 用 dpkg 侧载时平台不管，这里兜底建一个，属主给应用用户。
+for v in 1 2 3 4 5 6 7 8 9; do
+    [ -d "/Volume${v}" ] || continue
+    SHARE="/Volume${v}/snippethub"
+    mkdir -p "${SHARE}" 2>/dev/null || continue
+    chown "${APPID}:allusers" "${SHARE}" 2>/dev/null || true
+    chmod 750 "${SHARE}" 2>/dev/null || true
+    break
+done
+
+# 属主给应用用户、属组给 allusers，和平台创建应用用户时保持一致。
+# 日志目录同样收紧权限：目录 750、内容 640，别人读不到。
+chown -R "${APPID}:allusers" "${APP}/logs" 2>/dev/null || true
+chmod 750 "${APP}/logs" 2>/dev/null || true
+if [ -d "${APP}/data" ]; then
+    chown -R "${APPID}:allusers" "${APP}/data" 2>/dev/null || true
+    chmod 750 "${APP}/data" 2>/dev/null || true
 fi
-chmod 750 "${APP}/data" "${APP}/logs" 2>/dev/null || true
 
 # 前端页面：App Center 安装时平台会解压 webui.bz2，手工安装不会，这里补一次。
 # 解压出来是 webui/ 目录（内部含 index.html），与平台 nginx 的站点根保持一致。
 if [ -f "${APP}/webui.bz2" ]; then
     tar -xjf "${APP}/webui.bz2" -C "${APP}" 2>/dev/null || true
-    chmod -R a+rX "${APP}/webui" 2>/dev/null || true
+    # 权限最小化：原来的 a+rX 让所有人都能读页面文件，现在收成
+    # root:allusers 750 —— 平台 nginx 以 root（或 allusers 组）运行，读得到，
+    # 其它普通用户读不到。
+    chown -R root:allusers "${APP}/webui" 2>/dev/null || true
+    chmod -R 750 "${APP}/webui" 2>/dev/null || true
 fi
 
 # TOS 要求 unit 文件放在应用目录 /usr/local/<appid>/init.d/ 下，但 systemd
@@ -57,7 +73,8 @@ case "$1" in
         if [ -n "$2" ]; then
             echo "snippethub: upgrading from ${2}"
             # 升级不动数据，只校正一次归属
-            chown -R "${APPID}:allusers" "${APP}/data" "${APP}/logs" 2>/dev/null || true
+            chown -R "${APPID}:allusers" "${APP}/logs" 2>/dev/null || true
+            [ -d "${APP}/data" ] && chown -R "${APPID}:allusers" "${APP}/data" 2>/dev/null || true
         fi
         systemctl daemon-reload 2>/dev/null || true
         systemctl enable "${APPID}.service" 2>/dev/null || true
