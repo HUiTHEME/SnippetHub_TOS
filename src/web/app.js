@@ -307,14 +307,14 @@ function apiCandidates() {
   const p = location.pathname;
   const dir = p.replace(/[^/]*$/, '');
   const seg = appIdFromPath();
-  const list = [
-    // 当前页面所在目录优先，能一次命中就不多发探测请求
-    p.endsWith('/') ? p : p + '/',
-    '/v2/proxy/' + seg + '/',      // TOS 7 平台代理（规范 8.9）
-    '/proxy/' + seg + '/',         // 部分固件的 API 网关直通形态
-    dir,
-    '/',
-  ];
+  const here = p.endsWith('/') ? p : p + '/';
+  const proxy = '/v2/proxy/' + seg + '/';
+  // 平台的页面入口 /<appid>/ 只让 nginx 发静态文件，并没有 api 路由，
+  // 先探它会白打一个 404（控制台里那条红色的 /snippethub/api/state 就是它）。
+  // 已经知道自己在 TOS 里（index.html 的内联脚本会先挂上标记），就直接先走代理。
+  const list = document.documentElement.dataset.platform === 'tos'
+    ? [proxy, here, '/proxy/' + seg + '/', dir, '/']
+    : [here, proxy, '/proxy/' + seg + '/', dir, '/'];
   return Array.from(new Set(list.filter(Boolean)));
 }
 
@@ -706,6 +706,9 @@ async function loadData() {
 
 /* ---------- 视图切换 ---------- */
 async function setView(type, id) {
+  // 搜着词的时候点左侧任何分类，先把搜索清掉，不然列表被搜索条件过滤着，
+  // 点哪个文件夹都只显示「没有找到匹配的片段」。
+  if (state.query || ($('#search') && $('#search').value)) resetSearchState();
   if (state.dirty && state.doc) {
     const ok = await saveDoc(true);
     if (!ok) return;
@@ -1078,17 +1081,23 @@ function syncSearchClear() {
   $('#searchClear').hidden = $('#search').value.length === 0;
 }
 
-function clearSearch() {
+// 只把搜索状态清干净，不重绘、不抢焦点 —— 切换分类/标签时调用，
+// 否则搜着东西点文件夹，列表还是搜索结果的子集，看起来像「点了没反应」。
+function resetSearchState() {
   const input = $('#search');
-  input.value = '';
+  if (input) input.value = '';
   state.query = '';
   clearTimeout(searchTimer);
   searchSeq++;
   state.hits = new Map();
   state.hitsQuery = '';
   syncSearchClear();
+}
+
+function clearSearch() {
+  resetSearchState();
   renderList();
-  input.focus();
+  $('#search').focus();
 }
 
 $('#search').addEventListener('input', (e) => {

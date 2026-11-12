@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	appVersion   = "1.0.5"
+	appVersion   = "1.0.6"
 	appNameZH    = "片段HUB"
 	appNameEN    = "SnippetHub"
 	appPkg       = "snippethub"
